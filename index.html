@@ -4,128 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>실시간 컨펌 대기열</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <style>
-        body {
-            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 650px;
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 650px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
         input#name { width: 25%; }
         input#content { width: 60%; }
-        .btn-submit {
-            width: 15%;
-            padding: 12px;
-            background-color: #2b2d42;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .btn-submit { width: 15%; padding: 12px; background-color: #2b2d42; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-submit:hover { background-color: #1a1b2e; }
+        .queue-list { list-style: none; padding: 0; margin: 0; }
+        .queue-item { background-color: #f8f9fa; border-left: 5px solid #8d99ae; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease; }
         
-        .queue-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .queue-item {
-            background-color: #f8f9fa;
-            border-left: 5px solid #8d99ae;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-        
-        /* 호출 중일 때 깜빡이는 애니메이션 효과 */
         @keyframes blinkWarning {
             0% { background-color: #fff3cd; border-left-color: #ffc107; box-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
             50% { background-color: #ffe69c; border-left-color: #fd7e14; box-shadow: 0 0 15px rgba(253, 126, 20, 0.8); }
             100% { background-color: #fff3cd; border-left-color: #ffc107; box-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
         }
-        .queue-item.calling {
-            animation: blinkWarning 1.5s infinite;
-        }
-        .queue-item.calling .queue-status {
-            color: #d32f2f;
-            font-weight: bold;
-        }
-
+        .queue-item.calling { animation: blinkWarning 1.5s infinite; }
+        .queue-item.calling .queue-status { color: #d32f2f; font-weight: bold; }
         .queue-info { flex-grow: 1; }
-        .queue-info strong {
-            display: inline-block;
-            width: 60px;
-            color: #2b2d42;
-        }
-        .queue-time {
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
-            display: block;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        button {
-            padding: 8px 12px;
-            font-size: 13px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .queue-info strong { display: inline-block; width: 60px; color: #2b2d42; }
+        .queue-time { font-size: 12px; color: #888; margin-top: 5px; display: block; }
+        .action-buttons { display: flex; gap: 8px; }
+        button { padding: 8px 12px; font-size: 13px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-call { background-color: #ffb703; color: #023047; }
         .btn-call:hover { background-color: #fb8500; }
         .btn-done { background-color: #8d99ae; color: white; }
         .btn-done:hover { background-color: #717b8c; }
-        
-        .empty-msg {
-            text-align: center;
-            color: #888;
-            padding: 20px;
-        }
+        .empty-msg { text-align: center; color: #888; padding: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📝 대표님 컨펌 대기열</h2>
+    <h2>📝 실시간 대표님 컨펌 대기열</h2>
     
     <form class="form-group" id="confirmForm">
         <input type="text" id="name" placeholder="이름" required>
-        <input type="text" id="content" placeholder="어떤 건인가요? (예: 도면 확인, 견적서 등)" required>
+        <input type="text" id="content" placeholder="예: 혜움 평면도, 이천 바디즈 샘플보드 등" required>
         <button type="submit" class="btn-submit">등록</button>
     </form>
 
@@ -134,92 +55,92 @@
 </div>
 
 <script>
+    // 🚨 여기에 1단계에서 복사한 본인의 firebaseConfig를 붙여넣으세요!
+const firebaseConfig = {
+  apiKey: "AIzaSyBZmxJUr5oaZttF7oIYJSEBb5RgjVQjInY",
+  authDomain: "cofirm-board.firebaseapp.com",
+  projectId: "cofirm-board",
+  storageBucket: "cofirm-board.firebasestorage.app",
+  messagingSenderId: "367825644618",
+  appId: "1:367825644618:web:3f236c72c07d5347878ab3",
+  measurementId: "G-N4QY18DHPX"
+};
+
+
+    // Firebase 초기화 (이미 초기화되었는지 확인 후 실행)
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+    const queueRef = db.ref('confirm_queue'); // 데이터베이스 저장 공간 이름
+
     const form = document.getElementById('confirmForm');
     const queueList = document.getElementById('queueList');
-    
-    // 임시 데이터 (상태값 status 추가: 'waiting' 또는 'calling')
-    let queues = JSON.parse(localStorage.getItem('confirmQueuesV2')) || [
-        { id: 1, name: "김대리", content: "혜움 회계법인 마감재 샘플보드 확인", time: new Date().toLocaleTimeString('ko-KR'), status: "waiting" },
-        { id: 2, name: "박주임", content: "이천 바디즈 한의원 실시설계 도면", time: new Date().toLocaleTimeString('ko-KR'), status: "waiting" }
-    ];
 
-    function renderQueue() {
+    // 💡 데이터베이스에서 실시간으로 데이터를 불러와서 화면에 그리기
+    queueRef.on('value', (snapshot) => {
         queueList.innerHTML = '';
-        if (queues.length === 0) {
-            queueList.innerHTML = '<li class="empty-msg">현재 대기 중인 컨펌이 없습니다. 커피 한 잔의 여유를 ☕</li>';
+        const data = snapshot.val();
+        
+        if (!data) {
+            queueList.innerHTML = '<li class="empty-msg">현재 대기 중인 컨펌이 없습니다. ☕</li>';
             return;
         }
 
-        queues.forEach((item, index) => {
+        // 고유 ID(키값)와 데이터를 매칭하여 배열로 변환 후 렌더링
+        let index = 1;
+        for (let key in data) {
+            const item = data[key];
             const li = document.createElement('li');
-            // 호출 상태면 'calling' 클래스를 추가하여 깜빡이게 만듦
-            li.className = item.status === 'calling' ? 'queue-item calling' : 'queue-item';
             
+            li.className = item.status === 'calling' ? 'queue-item calling' : 'queue-item';
             const statusText = item.status === 'calling' ? '🚨 대표님 호출 중!' : '대기 중';
             const callBtnText = item.status === 'calling' ? '호출 취소' : '호출 (대표님)';
 
             li.innerHTML = `
                 <div class="queue-info">
-                    <span class="queue-number"><strong>#${index + 1}</strong> ${item.name}</span>
+                    <span class="queue-number"><strong>#${index}</strong> ${item.name}</span>
                     <span class="queue-status" style="font-size: 12px; margin-left: 10px;">[${statusText}]</span><br>
                     <span style="display:inline-block; margin-top:5px;">${item.content}</span>
                     <span class="queue-time">${item.time} 신청</span>
                 </div>
                 <div class="action-buttons">
-                    <button class="btn-call" onclick="toggleCall(${item.id})">${callBtnText}</button>
-                    <button class="btn-done" onclick="completeConfirm(${item.id})">완료</button>
+                    <button class="btn-call" onclick="toggleCall('${key}', '${item.status}')">${callBtnText}</button>
+                    <button class="btn-done" onclick="completeConfirm('${key}')">완료</button>
                 </div>
             `;
             queueList.appendChild(li);
-        });
-    }
+            index++;
+        }
+    });
 
-    // 대기 등록
+    // 데이터베이스에 새로운 대기 등록 (push)
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         const nameInput = document.getElementById('name');
         const contentInput = document.getElementById('content');
 
-        const newItem = {
-            id: Date.now(),
+        queueRef.push({
             name: nameInput.value,
             content: contentInput.value,
             time: new Date().toLocaleTimeString('ko-KR'),
-            status: "waiting" // 기본 상태는 대기
-        };
-
-        queues.push(newItem);
-        saveAndRender();
+            status: "waiting"
+        });
         
         nameInput.value = '';
         contentInput.value = '';
     });
 
-    // 호출 상태 변경 (대표님 전용 버튼)
-    function toggleCall(id) {
-        queues = queues.map(item => {
-            if (item.id === id) {
-                // waiting이면 calling으로, calling이면 waiting으로 변경
-                item.status = item.status === 'waiting' ? 'calling' : 'waiting';
-            }
-            return item;
-        });
-        saveAndRender();
+    // 데이터베이스 상태 업데이트 (호출 / 호출취소)
+    window.toggleCall = function(key, currentStatus) {
+        const newStatus = currentStatus === 'waiting' ? 'calling' : 'waiting';
+        queueRef.child(key).update({ status: newStatus });
     }
 
-    // 컨펌 완료 처리
-    function completeConfirm(id) {
-        queues = queues.filter(item => item.id !== id);
-        saveAndRender();
+    // 데이터베이스에서 항목 삭제 (컨펌 완료)
+    window.completeConfirm = function(key) {
+        queueRef.child(key).remove();
     }
-
-    // 저장 및 새로고침
-    function saveAndRender() {
-        localStorage.setItem('confirmQueuesV2', JSON.stringify(queues));
-        renderQueue();
-    }
-
-    renderQueue();
 </script>
 
 </body>
