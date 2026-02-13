@@ -70,17 +70,17 @@
 
 <script>
     // 회원님의 Firebase 설정 (수정 완료됨)
-// 🚨 여기를 다시 확인해주세요! (databaseURL 줄이 꼭 있어야 합니다)
-    const firebaseConfig = {
-        apiKey: "AIzaSyBZmxJUr5oaZttF7oIYJSEBb5RgjVQjInY",
-        authDomain: "cofirm-board.firebaseapp.com",
-        databaseURL: "https://cofirm-board-default-rtdb.firebaseio.com", // 👈 이 줄이 있는지 꼭 확인!!
-        projectId: "cofirm-board",
-        storageBucket: "cofirm-board.firebasestorage.app",
-        messagingSenderId: "367825644618",
-        appId: "1:367825644618:web:3f236c72c07d5347878ab3",
-        measurementId: "G-N4QY18DHPX"
-    };
+// 🚨 수정된 부분: databaseURL 한 줄이 추가되었습니다!
+const firebaseConfig = {
+  apiKey: "AIzaSyBZmxJUr5oaZttF7oIYJSEBb5RgjVQjInY",
+  authDomain: "cofirm-board.firebaseapp.com",
+  databaseURL: "https://cofirm-board-default-rtdb.firebaseio.com", // 👈 바로 이 녀석이 범인이었습니다!
+  projectId: "cofirm-board",
+  storageBucket: "cofirm-board.firebasestorage.app",
+  messagingSenderId: "367825644618",
+  appId: "1:367825644618:web:3f236c72c07d5347878ab3",
+  measurementId: "G-N4QY18DHPX"
+};
 
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
@@ -215,4 +215,5 @@
 
 </body>
 </html>
+
 
